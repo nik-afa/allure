@@ -1,0 +1,94 @@
+# name: allure-build-deploy
+
+# on: 
+#   push:
+#     branches: 
+#       - main
+
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+#     steps:
+#     - name: Checkout
+#       id: checkout
+#       uses: actions/checkout@v3
+
+#     - name: Set outputs
+#       id: vars
+#       run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+#     - name: Configure AWS credentials
+#       id: aws-creds
+#       uses: aws-actions/configure-aws-credentials@v1-node16
+#       with:
+#         aws-access-key-id: ${{ secrets.AK }}
+#         aws-secret-access-key: ${{ secrets.SK }}
+#         aws-region: us-east-1
+
+#     # - name: Copy test file to S3 bucket Allure
+#     #   run : aws s3 cp ./index.html  s3://allure-domain/test/
+
+#     - name: Login to Amazon ECR
+#       id: login-ecr
+#       uses: aws-actions/amazon-ecr-login@v1
+#       with:
+#         mask-password: 'true'
+
+#     - name: Build, tag, and push docker image to Amazon ECR
+#       id: docker-build
+#       env:
+#         REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+#         REPOSITORY: allure
+#       run: |
+#         docker build -t $REGISTRY/$REPOSITORY:${{ steps.vars.outputs.sha_short }} .
+#         docker push $REGISTRY/$REPOSITORY:${{ steps.vars.outputs.sha_short }}
+    
+#     - name: Slack Notification
+#       uses: act10ns/slack@v2
+#       with:
+#         webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+#         status: ${{ job.status }}
+#         steps: ${{ toJson(steps) }}
+#         channel: '#channel'
+#       if: failure()
+
+#   deploy:
+#     runs-on: ubuntu-latest
+#     needs: [build]
+#     steps:
+#     - name: Checkout
+#       id: checkout
+#       uses: actions/checkout@v3
+    
+#     - name: Set outputs
+#       id: vars
+#       run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+    
+#     - name: Deploy Helm
+#       id: helm-deploy
+#       uses: bitovi/github-actions-deploy-eks-helm@v1.2.4
+#       with:
+#         aws-access-key-id: ${{ secrets.AK }}
+#         aws-secret-access-key: ${{ secrets.SK }}
+#         aws-region: us-east-1
+#         cluster-name: develop
+#         chart-repository: https://chartmuseum.domain.com
+#         chart-path: charts/example-chart
+#         version: 1.0.0
+#         username: ${{ secrets.CHART_MUSEUM_USER }}
+#         password: ${{ secrets.CHART_MUSEUM_PASSWORD }}
+#         config-files: ./.helm/allure.values.yaml
+#         namespace: allure
+#         name: allure
+#         atomic: true
+#         timeout: 2m
+#         values: image.tag=${{ steps.vars.outputs.sha_short }}
+
+#     - name: Slack Notification
+#       uses: act10ns/slack@v2
+#       with:
+#         webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+#         status: ${{ job.status }}
+#         steps: ${{ toJson(steps) }}
+#         channel: '#channel'
+#       if: failure()

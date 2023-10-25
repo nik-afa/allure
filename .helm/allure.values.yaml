@@ -1,0 +1,68 @@
+enabled: "true"
+replicaCount: 0
+statefullSet: false
+image:
+  repository: 111122223333.dkr.ecr.us-east-1.amazonaws.com/allure
+  tag: "latest"
+  pullPolicy: IfNotPresent
+nameOverride: ""
+fullnameOverride: ""
+# SA need for access to S3 
+serviceAccount:
+  create: true
+  name: allure
+  annotations:
+    # https://docs.aws.amazon.com/eks/latest/userguide/associate-service-account-role.html
+    eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/allure-role
+
+podAnnotations: {}
+
+# Labels for set Datashim dataset
+podLabels:
+  dataset.0.id: "allure"
+  dataset.0.useas: "mount"
+
+# optional, if not specified it would be mounted in /mnt/datasets/example-dataset
+volumeMounts:
+  - mountPath: "/usr/share/nginx/html"
+    name: "allure"
+volumes:
+  - name: allure
+    persistentVolumeClaim:
+      claimName: allure
+
+# livenessProbe:
+#   httpGet:
+#     path: /health/
+#     port: http
+#   timeoutSeconds: 2
+#   periodSeconds: 30
+#   successThreshold: 1
+#   failureThreshold: 3
+# readinessProbe:
+#   httpGet:
+#     path: /health/
+#     port: http
+#   timeoutSeconds: 2
+#   periodSeconds: 30
+#   successThreshold: 1
+#   failureThreshold: 3
+
+service:
+  type: ClusterIP
+  port: 80
+
+serviceMonitor:
+  enabled: false
+
+resources:
+  requests:
+    cpu: "10m"
+    memory: "64Mi"
+  limits:
+    cpu: "300m"
+    memory: "256Mi"
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
